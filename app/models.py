@@ -24,3 +24,12 @@ class UsualCake(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Advertising(models.Model):
+    """Модель рекламы."""
+    url = models.URLField('Ссылка')
+    text = models.TextField('Текст рекламы')
+    responses = models.IntegerField('Количество откликов')
+    
+    
