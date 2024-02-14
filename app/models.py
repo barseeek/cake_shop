@@ -9,7 +9,7 @@ class Client(models.Model):
     class Meta:
         ordering = ['id']
         verbose_name = 'Клиент'
-        verbose_plural_name = 'Клиенты'
+        verbose_name_plural = 'Клиенты'
 
     def __str__(self):
         return self.username
