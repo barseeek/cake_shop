@@ -15,7 +15,7 @@ class Client(models.Model):
         return self.username
 
 
-class UsualCake(models.Model):
+class BaseCake(models.Model):
     """Модель торта из стандартного меню."""
     title = models.CharField('Название', max_length=100)
     inscription = models.CharField(
@@ -31,5 +31,3 @@ class Advertising(models.Model):
     url = models.URLField('Ссылка')
     text = models.TextField('Текст рекламы')
     responses = models.IntegerField('Количество откликов')
-    
-    
