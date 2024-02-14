@@ -13,3 +13,14 @@ class Client(models.Model):
 
     def __str__(self):
         return self.username
+
+
+class UsualCake(models.Model):
+    """Модель торта из стандартного меню."""
+    title = models.CharField('Название', max_length=100)
+    inscription = models.CharField(
+        'Надпись на торте', max_length=200, blank=True, null=True)
+    price = models.FloatField('Цена')
+
+    def __str__(self):
+        return self.title
