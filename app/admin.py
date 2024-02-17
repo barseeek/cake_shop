@@ -9,7 +9,7 @@ env.read_env()
 @admin.register(Advertising)
 class AdvertisingModel(admin.ModelAdmin):
     list_display = ('url', 'text', 'responses',)
-    readonly_fields = ('url',)
+    readonly_fields = ('url','responses',)
 
 
     def changelist_view(self, request, extra_context=None):
@@ -25,6 +25,7 @@ class AdvertisingModel(admin.ModelAdmin):
                                     headers=headers,
                                     params=params)
             response.raise_for_status()
-            Advertising.objects.filter(pk=ad.pk).update(responses=response.json()["clicks"])
+            ad.responses = response.json()["clicks"]
+        Advertising.objects.bulk_update(advertising, ['responses'])
         return super().changelist_view(request, extra_context=extra_context)
 
