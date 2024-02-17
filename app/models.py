@@ -195,6 +195,6 @@ class OrderBaseCake(models.Model):
 
 class Advertising(models.Model):
     """Модель рекламы."""
-    url = models.URLField('Ссылка')
+    url = models.URLField('Ссылка', blank=True)
     text = models.TextField('Текст рекламы')
-    responses = models.IntegerField('Количество откликов')
+    responses = models.IntegerField('Количество откликов', null=True, blank=True, default=0)
