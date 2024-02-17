@@ -1,5 +1,5 @@
 from django.db import models
-
+import requests
 
 EXTRA_PRICES = {
     'levels': {1: 400, 2: 750, 3: 1100, },

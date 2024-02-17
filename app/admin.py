@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from app.models import Advertising
+
+
+@admin.register(Advertising)
+class AdvertisingModel(admin.ModelAdmin):
+    list_display = ('url', 'text', 'responses',)
