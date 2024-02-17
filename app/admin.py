@@ -1,34 +1,30 @@
 from django.contrib import admin
+import requests
+from app.models import Advertising
+from environs import Env
 
-from .models import (Client, BaseCake, CustomCake, Order, OrderBaseCake,
-                     Advertising)
-
-
-@admin.register(Client)
-class ClientAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(BaseCake)
-class BaseCakeAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(CustomCake)
-class CustomCakeAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(OrderBaseCake)
-class OrderBaseCakeAdmin(admin.ModelAdmin):
-    pass
-
+env = Env()
+env.read_env()
 
 @admin.register(Advertising)
-class AdvertisingAdmin(admin.ModelAdmin):
-    pass
+class AdvertisingModel(admin.ModelAdmin):
+    list_display = ('url', 'text', 'responses',)
+    readonly_fields = ('url',)
+
+
+    def changelist_view(self, request, extra_context=None):
+        # Ваша логика обновления модели
+        advertising = Advertising.objects.all()
+        headers = {
+            "Authorization": f"Bearer {env.str('TLY_API_TOKEN')}"
+        }
+        url = "https://t.ly/api/v1/link/stats"
+        for ad in advertising:
+            params = {"short_url": ad.url}
+            response = requests.get(url,
+                                    headers=headers,
+                                    params=params)
+            response.raise_for_status()
+            Advertising.objects.filter(pk=ad.pk).update(responses=response.json()["clicks"])
+        return super().changelist_view(request, extra_context=extra_context)
+

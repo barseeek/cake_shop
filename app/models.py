@@ -41,17 +41,24 @@ class Client(models.Model):
         ordering = ['id']
         verbose_name = 'Клиент'
         verbose_name_plural = 'Клиенты'
+        verbose_name_plural = 'Клиенты'
 
     def __str__(self):
         return self.username
 
 
 class BaseCake(models.Model):
+class BaseCake(models.Model):
     """Модель торта из стандартного меню."""
     title = models.CharField('Название', max_length=100)
     inscription = models.CharField(
         'Надпись на торте', max_length=200, blank=True, null=True)
     price = models.FloatField('Цена')
+
+    class Meta:
+        ordering = ['title']
+        verbose_name = 'Торт из меню'
+        verbose_name_plural = 'Торты из меню'
 
     class Meta:
         ordering = ['title']
