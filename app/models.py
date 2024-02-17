@@ -167,7 +167,7 @@ class Order(models.Model):
         through='OrderBaseCake',
         verbose_name='Торты из меню',
         blank=True,
-        null=True,
+        # null=True,
         related_name='orders',
     )
     total_price = models.FloatField('Конечная цена')
@@ -192,9 +192,17 @@ class OrderBaseCake(models.Model):
         verbose_name='Торт')
     amount = models.IntegerField('Количество тортов в заказе')
 
+    class Meta:
+        verbose_name = 'Торт из меню в заказе'
+        verbose_name_plural = 'Торты из меню в заказе'
+
 
 class Advertising(models.Model):
     """Модель рекламы."""
     url = models.URLField('Ссылка')
     text = models.TextField('Текст рекламы')
     responses = models.IntegerField('Количество откликов')
+
+    class Meta:
+        verbose_name = 'Реклама'
+        verbose_name_plural = 'Реклама'
