@@ -34,7 +34,11 @@ EXTRA_PRICES = {
 
 class Client(models.Model):
     """Модель клиента."""
-    username = models.CharField('Имя пользователя в Telegram', max_length=100)
+    username = models.CharField(
+        'Имя пользователя в Telegram',
+        max_length=100,
+        unique=True,
+    )
     address = models.TextField('Адрес')
 
     class Meta:

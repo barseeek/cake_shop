@@ -35,7 +35,7 @@ class BotStates(StatesGroup):
     create_order = State()
     after_order = State()
 
-
+# TODO: зацикливается на этом месте
 @bot.message_handler(state=BotStates.after_order, func=lambda message: True)
 def create_order(message):
     bot.send_message(message.chat.id, "Хотите заказать новый торт? Для нового заказа через бота введите /start")
@@ -47,11 +47,15 @@ def create_order(message):
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["comment"] = message.text
     
-    new_client = Client.objects.create(
+    new_client, created = Client.objects.update_or_create(
         username=data['username'],
-        address=data['address'],
+        defaults={
+            'username': data['username'],
+            'address': data['address'],
+        }
     )
-    new_client.save()
+    if created:
+        print(f'Создан новый пользователь {new_client.username}')
     
     msg = "Отлично, вот данные по вашему заказу: \n"
     for key, value in data.items():
