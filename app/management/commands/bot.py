@@ -9,7 +9,7 @@ from telebot.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardBut
     InlineKeyboardButton
 import datetime
 
-from app.models import BaseCake
+from app.models import BaseCake, Client
 
 env = Env()
 env.read_env()
@@ -46,6 +46,13 @@ def create_order(message):
 def create_order(message):
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["comment"] = message.text
+    
+    new_client = Client.objects.create(
+        username=data['username'],
+        address=data['address'],
+    )
+    new_client.save()
+    
     msg = "Отлично, вот данные по вашему заказу: \n"
     for key, value in data.items():
         msg += f"{key}:{value}\n"
@@ -261,6 +268,8 @@ def approved(call):
     message = call.message
     chat_id = message.chat.id
     bot.send_document(message.chat.id, open('agreement.pdf', 'rb'))
+    with bot.retrieve_data(call.from_user.id, chat_id) as data:
+        data["username"] = call.from_user.username
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
     button_base = InlineKeyboardButton("Выбрать готовый торт", callback_data="base")
