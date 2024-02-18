@@ -9,7 +9,7 @@ from telebot.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardBut
     InlineKeyboardButton
 import datetime
 
-from app.models import BaseCake, Client, CustomCake
+from app.models import BaseCake, Client, CustomCake, Order
 
 env = Env()
 env.read_env()
@@ -60,7 +60,6 @@ def create_order(message):
         
     # Creating custom cake in db
     if data.get('type') == 'custom':
-        # client = Client.objects.get(username=data['username'])
         new_custom_cake = CustomCake.objects.create(
             levels_number=data.get('level'),
             shape=data.get('form'),
@@ -72,6 +71,26 @@ def create_order(message):
         )
         new_custom_cake.save()
         CustomCake.objects.filter(id=new_custom_cake.id).get_price()
+    
+    # Creating order in db
+    new_order, created = Order.objects.update_or_create(
+        client=new_client,
+        defaults={
+            'comment':data.get('comment'),
+            'date': data.get('date'),
+            'time': data.get('time'),
+        }
+    )
+    if created:
+        print(f'Создан новый заказ пользователя {new_client.username}')
+    if data.get('type') == 'base':
+        order_base_cake = BaseCake.objects.get(id=data.get('base_cake_id'))
+        new_order.base_cakes.add(order_base_cake)
+    if data.get('type') == 'custom':
+        new_order.custom_cakes.add(new_custom_cake)
+    if data.get('fast_delivery'):
+        new_order.fast_delivery = True
+    Order.objects.filter(id=new_order.id).get_total_price()
     
     msg = "Отлично, вот данные по вашему заказу: \n"
     for key, value in data.items():
@@ -97,6 +116,8 @@ def get_date(call):
     chat_id = message.chat.id
     delivery_date = datetime.datetime.now() + datetime.timedelta(days=2)
     if call.data == "fast_delivery":
+        with bot.retrieve_data(call.from_user.id, chat_id) as data:
+            data["fast_delivery"] = True
         delivery_date = datetime.datetime.now().date()
     with bot.retrieve_data(call.from_user.id, chat_id) as data:
         # TODO: AttributeError: 'datetime.date' object has no attribute 'date'
@@ -168,8 +189,10 @@ def custom_cake_inscription(call):
     message = call.message
     chat_id = message.chat.id
     with bot.retrieve_data(call.from_user.id, chat_id) as data:
-        # TODO: всегда попадает в data
-        data["decor"] = call.data
+        if data.get('type') == 'base':
+            data["base_cake_id"] = call.data
+        else:
+            data["decor"] = call.data
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
     button_yes = InlineKeyboardButton("Да", callback_data="YES")
