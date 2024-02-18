@@ -33,13 +33,6 @@ class BotStates(StatesGroup):
     get_date = State()
     get_time = State()
     create_order = State()
-    after_order = State()
-
-# TODO: зацикливается на этом месте
-@bot.message_handler(state=BotStates.after_order, func=lambda message: True)
-def create_order(message):
-    bot.send_message(message.chat.id, "Хотите заказать новый торт? Для нового заказа через бота введите /start")
-    bot.set_state(message.from_user.id, BotStates.after_order, message.chat.id)
 
 
 @bot.message_handler(state=BotStates.create_order, func=lambda message: True)
@@ -78,13 +71,14 @@ def create_order(message):
         msg += f"{key}:{value}\n"
     msg += "Ваш заказ №бла создан"
     bot.send_message(message.chat.id, msg)
-    bot.set_state(message.from_user.id, BotStates.after_order, message.chat.id)
-
+    bot.send_message(message.chat.id, "Хотите заказать новый торт? Для нового заказа через бота введите /start")
+    bot.delete_state(message.from_user.id, message.chat.id)
 
 @bot.callback_query_handler(state=BotStates.get_time, func=lambda call: True)
 def get_time(call):
     message = call.message
     chat_id = message.chat.id
+    bot.edit_message_reply_markup(chat_id, message.message_id)
     with bot.retrieve_data(call.from_user.id, chat_id) as data:
         data["time"] = call.data
     bot.send_message(chat_id, "Введите комментарий для курьера")
@@ -96,15 +90,22 @@ def get_date(call):
     message = call.message
     chat_id = message.chat.id
     delivery_date = datetime.datetime.now() + datetime.timedelta(days=2)
+    current_datetime = datetime.datetime.now()
+    bot.edit_message_reply_markup(chat_id, message.message_id)
     if call.data == "fast_delivery":
-        delivery_date = datetime.datetime.now().date()
+        if current_datetime.time().hour >= 17:
+            delivery_date = current_datetime + datetime.timedelta(days=1)
+        else:
+            delivery_date = current_datetime
     with bot.retrieve_data(call.from_user.id, chat_id) as data:
-        # TODO: AttributeError: 'datetime.date' object has no attribute 'date'
         data["date"] = delivery_date.date()
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
-    inline_keyboard.add(InlineKeyboardButton("9-13", callback_data="9-13"),
-                        InlineKeyboardButton("13-17", callback_data="13-17"),
-                        InlineKeyboardButton("17-21", callback_data="17-21"))
+    if delivery_date.date() == current_datetime.date():
+        inline_keyboard.add(InlineKeyboardButton("До 22", callback_data="until_22"))
+    else:
+        inline_keyboard.add(InlineKeyboardButton("9-13", callback_data="9-13"),
+                            InlineKeyboardButton("13-17", callback_data="13-17"),
+                            InlineKeyboardButton("17-21", callback_data="17-21"))
     bot.send_message(chat_id, "Выберите временной интервал", reply_markup=inline_keyboard)
     bot.set_state(chat_id, BotStates.get_time)
 
@@ -113,6 +114,7 @@ def get_date(call):
 def call_manager(call):
     message = call.message
     chat_id = message.chat.id
+    bot.edit_message_reply_markup(chat_id, message.message_id)
     bot.send_message(chat_id, "Менеджер Ирина: +79211233446")
     bot.set_state(chat_id, BotStates.after_order)
 
@@ -121,10 +123,12 @@ def call_manager(call):
 def get_another_date(call):
     message = call.message
     chat_id = message.chat.id
+    bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
     inline_keyboard.add(InlineKeyboardButton("Срочная доставка", callback_data="fast_delivery"),
                         InlineKeyboardButton("Позвонить менеджеру", callback_data="call_manager"))
-    bot.send_message(chat_id, "Мы можем предложить срочную доставку в течение 24 часов, это прибавит 20% к стоимости заказа, либо можно позвонить менеджеру", reply_markup=inline_keyboard)
+    bot.send_message(chat_id, "Мы можем предложить доставку сегодня, если заказ сделан не позднее 17 часов,"
+                              " это прибавит 20% к стоимости заказа, либо можно позвонить менеджеру", reply_markup=inline_keyboard)
 
 
 @bot.message_handler(state=BotStates.get_address, func=lambda message: True)
@@ -168,8 +172,8 @@ def custom_cake_inscription(call):
     message = call.message
     chat_id = message.chat.id
     with bot.retrieve_data(call.from_user.id, chat_id) as data:
-        # TODO: всегда попадает в data
-        data["decor"] = call.data
+        if data.get("type") == "custom":
+            data["decor"] = call.data
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
     button_yes = InlineKeyboardButton("Да", callback_data="YES")
@@ -260,6 +264,7 @@ def custom_cake_level(call):
     message = call.message
     chat_id = message.chat.id
     with bot.retrieve_data(call.from_user.id, chat_id) as data:
+        data["username"] = call.from_user.username
         data["type"] = call.data
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup()
@@ -276,6 +281,7 @@ def base_cake(call):
     message = call.message
     chat_id = message.chat.id
     with bot.retrieve_data(call.from_user.id, chat_id) as data:
+        data["username"] = call.from_user.username
         data["type"] = call.data
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup()
@@ -295,15 +301,12 @@ def base_cake(call):
 def approved(call):
     message = call.message
     chat_id = message.chat.id
-    bot.send_document(message.chat.id, open('agreement.pdf', 'rb'))
-    with bot.retrieve_data(call.from_user.id, chat_id) as data:
-        data["username"] = call.from_user.username
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
     button_base = InlineKeyboardButton("Выбрать готовый торт", callback_data="base")
     button_custom = InlineKeyboardButton("Создать новый торт", callback_data="custom")
     inline_keyboard.add(button_base, button_custom)
-    bot.send_message(chat_id, "Спасибо за доверие! Какой торт вы хотите: выбрать из готовых или создать свой?",
+    bot.send_message(chat_id, "Какой торт вы хотите: выбрать из готовых или создать свой?",
                      reply_markup=inline_keyboard)
     bot.set_state(chat_id, BotStates.select_type)
 
@@ -318,14 +321,27 @@ def not_approved(call):
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    inline_keyboard = InlineKeyboardMarkup(row_width=2)
-    button_yes = InlineKeyboardButton("Да", callback_data="YES")
-    button_no = InlineKeyboardButton("Нет", callback_data="NO")
-    inline_keyboard.add(button_yes, button_no)
-    bot.reply_to(message,
-                 "Добро пожаловать в наш магазин! Для заказа торта необходимо принять согласие на обработку персональных данных",
-                 reply_markup=inline_keyboard)
-    bot.set_state(message.from_user.id, BotStates.approve_pd, message.chat.id)
+
+    client = Client.objects.filter(username=message.from_user.username).exists()
+    bot.send_message(message.chat.id, "Добро пожаловать в наш магазин!")
+    if not client:
+        inline_keyboard = InlineKeyboardMarkup(row_width=2)
+        button_yes = InlineKeyboardButton("Да", callback_data="YES")
+        button_no = InlineKeyboardButton("Нет", callback_data="NO")
+        inline_keyboard.add(button_yes, button_no)
+        bot.send_message(message.chat.id,
+                     "Для заказа торта необходимо принять согласие на обработку персональных данных, вы согласны? ",
+                     reply_markup=inline_keyboard)
+        bot.send_document(message.chat.id, open('agreement.pdf', 'rb'))
+        bot.set_state(message.from_user.id, BotStates.approve_pd, message.chat.id)
+    else:
+        inline_keyboard = InlineKeyboardMarkup(row_width=2)
+        button_base = InlineKeyboardButton("Выбрать готовый торт", callback_data="base")
+        button_custom = InlineKeyboardButton("Создать новый торт", callback_data="custom")
+        inline_keyboard.add(button_base, button_custom)
+        bot.send_message(message.chat.id, "Какой торт вы хотите: выбрать из готовых или создать свой?",
+                         reply_markup=inline_keyboard)
+        bot.set_state(message.chat.id, BotStates.select_type)
 
 
 # Название класса обязательно - "Command"
