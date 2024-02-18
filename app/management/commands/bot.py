@@ -9,7 +9,7 @@ from telebot.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardBut
     InlineKeyboardButton
 import datetime
 
-from app.models import BaseCake, Client
+from app.models import BaseCake, Client, CustomCake
 
 env = Env()
 env.read_env()
@@ -47,6 +47,7 @@ def create_order(message):
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["comment"] = message.text
     
+    # Updating or creating client
     new_client, created = Client.objects.update_or_create(
         username=data['username'],
         defaults={
@@ -56,6 +57,21 @@ def create_order(message):
     )
     if created:
         print(f'Создан новый пользователь {new_client.username}')
+        
+    # Creating custom cake in db
+    if data.get('type') == 'custom':
+        # client = Client.objects.get(username=data['username'])
+        new_custom_cake = CustomCake.objects.create(
+            levels_number=data.get('level'),
+            shape=data.get('form'),
+            topping=data.get('topping'),
+            berries=data.get('berries'),
+            decor=data.get('decor'),
+            inscription=data.get('inscription'),
+            client=new_client,
+        )
+        new_custom_cake.save()
+        CustomCake.objects.filter(id=new_custom_cake.id).get_price()
     
     msg = "Отлично, вот данные по вашему заказу: \n"
     for key, value in data.items():
@@ -197,7 +213,7 @@ def custom_cake_berries(call):
                         InlineKeyboardButton("Малина", callback_data="raspberry"),
                         InlineKeyboardButton("Голубика", callback_data="blueberry"),
                         InlineKeyboardButton("Клубника", callback_data="strawberry"))
-    bot.send_message(chat_id, "Выберите форму",
+    bot.send_message(chat_id, "Выберите ягоды",
                      reply_markup=inline_keyboard)
     bot.set_state(chat_id, BotStates.select_decor)
 
@@ -212,7 +228,11 @@ def custom_cake_topping(call):
     inline_keyboard = InlineKeyboardMarkup()
     inline_keyboard.add(InlineKeyboardButton("Без топпинга", callback_data="no_topping"),
                         InlineKeyboardButton("Белый соус", callback_data="white_sauce"),
-                        InlineKeyboardButton("Сироп", callback_data="syrup")
+                        InlineKeyboardButton("Карамельный сироп", callback_data="caramel_syrup"),
+                        InlineKeyboardButton("Кленовый сироп", callback_data="maple_syrup"),
+                        InlineKeyboardButton("Клубничный сироп", callback_data="strawberry_syrup"),
+                        InlineKeyboardButton("Черничный сироп", callback_data="blueberry_syrup"),
+                        InlineKeyboardButton("Молочный шоколад", callback_data="milk_chocolate"),
                         )
     bot.send_message(chat_id, "Выберите топпинги",
                      reply_markup=inline_keyboard)
@@ -239,6 +259,8 @@ def custom_cake_form(call):
 def custom_cake_level(call):
     message = call.message
     chat_id = message.chat.id
+    with bot.retrieve_data(call.from_user.id, chat_id) as data:
+        data["type"] = call.data
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup()
     inline_keyboard.add(InlineKeyboardButton("1", callback_data="1"),
@@ -253,6 +275,8 @@ def custom_cake_level(call):
 def base_cake(call):
     message = call.message
     chat_id = message.chat.id
+    with bot.retrieve_data(call.from_user.id, chat_id) as data:
+        data["type"] = call.data
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup()
     base_cakes = BaseCake.objects.all()

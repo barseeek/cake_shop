@@ -2,24 +2,26 @@ from django.db import models
 
 
 EXTRA_PRICES = {
-    'levels': {1: 400, 2: 750, 3: 1100, },
+    'levels': {'1': 400, '2': 750, '3': 1100, },
     'shapes': {'square': 600, 'circle': 400, 'rectangle': 1000, },
     'toppings': {
-        'nothing': 0,
+        'no_topping': 0,
         'white_souce': 200,
-        'caramel syrup': 180,
-        'maple syrup': 200,
-        'strawberry syrup': 300,
-        'blueberry syrup': 350,
-        'milk chocolate': 200,
+        'caramel_syrup': 180,
+        'maple_syrup': 200,
+        'strawberry_syrup': 300,
+        'blueberry_syrup': 350,
+        'milk_chocolate': 200,
     },
     'berries': {
+        'no_berries': 0,
         'blackberry': 400,
-        'raspberries': 300,
+        'raspberry': 300,
         'blueberry': 450,
         'strawberry': 500,
     },
     'decor': {
+        'no_decor': 0,
         'pistachios': 300,
         'meringue': 400,
         'hazelnut': 350,
@@ -73,6 +75,23 @@ class BaseCake(models.Model):
         return self.title
 
 
+class CustomCakeQuerySet(models.QuerySet):
+    """Пользовательский класс QuerySet для модели CustomCake."""
+    def get_price(self):
+        """Вычислить и записать стоимость пользовательского торта."""
+        cake = self.first()
+        price = (
+            EXTRA_PRICES['levels'][str(cake.levels_number)] + 
+            EXTRA_PRICES['shapes'][cake.shape] +
+            EXTRA_PRICES['toppings'][cake.topping] +
+            EXTRA_PRICES['berries'][cake.berries] +
+            EXTRA_PRICES['decor'][cake.decor]
+        )
+        if cake.inscription:
+            price += EXTRA_PRICES['inscription']
+        self.update(price=price)
+
+
 class CustomCake(models.Model):
     """Модель торта, собранного самостоятельно."""
     LEVEL_CHOICES = [(1, '1 уровень'), (2, '2 уровня'), (3, '3 уровня'),]
@@ -82,21 +101,23 @@ class CustomCake(models.Model):
         ('rectangle', 'прямоугольник'),
     ]
     TOPPING_CHOICES = [
-        ('nothing', 'без топпинга'),
+        ('no_topping', 'без топпинга'),
         ('white_souce', 'белый соус'),
-        ('caramel syrup', 'карамельный сироп'),
-        ('maple syrup', 'кленовый сироп'),
-        ('strawberry syrup', 'клубничный сироп'),
-        ('blueberry syrup', 'черничный сироп'),
-        ('milk chocolate', 'молочный шоколад'),
+        ('caramel_syrup', 'карамельный сироп'),
+        ('maple_syrup', 'кленовый сироп'),
+        ('strawberry_syrup', 'клубничный сироп'),
+        ('blueberry_syrup', 'черничный сироп'),
+        ('milk_chocolate', 'молочный шоколад'),
     ]
     BERRIES_CHOICES = [
+        ('no_berries', 'без ягод'),
         ('blackberry', 'ежевика'),
         ('raspberries', 'малина'),
         ('blueberry', 'голубика'),
         ('strawberry', 'клубника'),
     ]
     DECOR_CHOICES = [
+        ('no_decor', 'без декора'),
         ('pistachios', 'фисташки'),
         ('meringue', 'безе'),
         ('hazelnut', 'фундук'),
@@ -153,7 +174,8 @@ class CustomCake(models.Model):
         related_name='custom_cakes',
         verbose_name='Клиент'
     )
-    price = models.FloatField('Цена')
+    price = models.FloatField('Цена', blank=True, null=True)
+    objects = CustomCakeQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Кастомный торт'
