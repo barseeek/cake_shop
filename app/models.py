@@ -185,6 +185,25 @@ class CustomCake(models.Model):
         return f'Кастомный торт клиента {self.client}'
 
 
+class OrderQuerySet(models.QuerySet):
+    """Пользовательский класс QuerySet для модели Order."""
+    def get_total_price(self):
+        """Вычислить и записать полную стоимость заказа."""
+        order = self.first()
+        total_price = 0
+        if order.base_cakes:
+            for cake in order.base_cakes.all():
+                if cake.inscription:
+                    total_price += 500
+                total_price += cake.price
+        if order.custom_cakes:
+            for cake in order.custom_cakes.all():
+                total_price += cake.price
+        if order.fast_delivery:
+            total_price *= EXTRA_PRICES['express_coefficient']
+        self.update(total_price=total_price)
+
+
 class Order(models.Model):
     """Модель заказа."""
     client = models.ForeignKey(
@@ -194,16 +213,18 @@ class Order(models.Model):
         verbose_name='Клиент',
     )
     comment = models.TextField('Комментарий', blank=True, null=True,)
-    date_time = models.DateTimeField('Дата и время доставки')
+    date = models.DateField('Дата доставки')
+    time = models.CharField('Время доставки', max_length=50)
     base_cakes = models.ManyToManyField(
         BaseCake,
         through='OrderBaseCake',
         verbose_name='Торты из меню',
         blank=True,
-        # null=True,
         related_name='orders',
     )
-    total_price = models.FloatField('Конечная цена')
+    total_price = models.FloatField('Конечная цена', blank=True, null=True)
+    fast_delivery = models.BooleanField(default=False)
+    objects = OrderQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Заказ'
@@ -223,7 +244,7 @@ class OrderBaseCake(models.Model):
         BaseCake,
         on_delete=models.CASCADE,
         verbose_name='Торт')
-    amount = models.IntegerField('Количество тортов в заказе')
+    amount = models.IntegerField('Количество тортов в заказе', default=1)
 
     class Meta:
         verbose_name = 'Торт из меню в заказе'
