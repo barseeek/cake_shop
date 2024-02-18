@@ -9,6 +9,8 @@ from telebot.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardBut
     InlineKeyboardButton
 import datetime
 
+from app.models import BaseCake
+
 env = Env()
 env.read_env()
 
@@ -70,6 +72,7 @@ def get_date(call):
     if call.data == "fast_delivery":
         delivery_date = datetime.datetime.now().date()
     with bot.retrieve_data(call.from_user.id, chat_id) as data:
+        # TODO: AttributeError: 'datetime.date' object has no attribute 'date'
         data["date"] = delivery_date.date()
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
     inline_keyboard.add(InlineKeyboardButton("9-13", callback_data="9-13"),
@@ -138,6 +141,7 @@ def custom_cake_inscription(call):
     message = call.message
     chat_id = message.chat.id
     with bot.retrieve_data(call.from_user.id, chat_id) as data:
+        # TODO: всегда попадает в data
         data["decor"] = call.data
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
@@ -240,8 +244,12 @@ def base_cake(call):
     chat_id = message.chat.id
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup()
-    for cake in range(1, 4):
-        button_cake = InlineKeyboardButton(f"Торт{cake}", callback_data=f"{cake}")
+    base_cakes = BaseCake.objects.all()
+    for cake in base_cakes:
+        button_cake = InlineKeyboardButton(
+            f"{cake.title} - {cake.price}р.",
+            callback_data=f"{cake.id}",
+        )
         inline_keyboard.add(button_cake)
     bot.send_message(chat_id, "Выберите торт из предложенных",
                      reply_markup=inline_keyboard)
@@ -252,6 +260,7 @@ def base_cake(call):
 def approved(call):
     message = call.message
     chat_id = message.chat.id
+    bot.send_document(message.chat.id, open('agreement.pdf', 'rb'))
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
     button_base = InlineKeyboardButton("Выбрать готовый торт", callback_data="base")
@@ -279,7 +288,6 @@ def start(message):
     bot.reply_to(message,
                  "Добро пожаловать в наш магазин! Для заказа торта необходимо принять согласие на обработку персональных данных",
                  reply_markup=inline_keyboard)
-    bot.send_document(message.chat.id, open('agreement.pdf', 'rb'))
     bot.set_state(message.from_user.id, BotStates.approve_pd, message.chat.id)
 
 

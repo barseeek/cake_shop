@@ -50,6 +50,7 @@ class Client(models.Model):
 class BaseCake(models.Model):
     """Модель торта из стандартного меню."""
     title = models.CharField('Название', max_length=100)
+    # TODO: переместить inscription в order как base_cake_inscription
     inscription = models.CharField(
         'Надпись на торте', max_length=200, blank=True, null=True)
     price = models.FloatField('Цена')
