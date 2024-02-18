@@ -48,7 +48,6 @@ class Client(models.Model):
 
 
 class BaseCake(models.Model):
-class BaseCake(models.Model):
     """Модель торта из стандартного меню."""
     title = models.CharField('Название', max_length=100)
     inscription = models.CharField(
@@ -206,9 +205,14 @@ class OrderBaseCake(models.Model):
 
 class Advertising(models.Model):
     """Модель рекламы."""
-    url = models.URLField('Ссылка')
+    url = models.URLField('Ссылка', blank=True)
     text = models.TextField('Текст рекламы')
-    responses = models.IntegerField('Количество откликов')
+    responses = models.IntegerField(
+        'Количество откликов',
+        null=True,
+        blank=True,
+        default=0,
+    )
 
     class Meta:
         verbose_name = 'Реклама'

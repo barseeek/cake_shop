@@ -1,10 +1,38 @@
 from django.contrib import admin
 import requests
-from app.models import Advertising
 from environs import Env
+
+from .models import (Client, BaseCake, CustomCake, Order, OrderBaseCake,
+                     Advertising)
 
 env = Env()
 env.read_env()
+
+
+@admin.register(Client)
+class ClientAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(BaseCake)
+class BaseCakeAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(CustomCake)
+class CustomCakeAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(OrderBaseCake)
+class OrderBaseCakeAdmin(admin.ModelAdmin):
+    pass
+
 
 @admin.register(Advertising)
 class AdvertisingModel(admin.ModelAdmin):
