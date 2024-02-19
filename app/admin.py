@@ -2,8 +2,7 @@ from django.contrib import admin
 import requests
 from environs import Env
 
-from .models import (Client, BaseCake, CustomCake, Order, OrderBaseCake,
-                     Advertising)
+from .models import Client, Cake, Order, Advertising
 
 env = Env()
 env.read_env()
@@ -14,23 +13,13 @@ class ClientAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(BaseCake)
+@admin.register(Cake)
 class BaseCakeAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(CustomCake)
-class CustomCakeAdmin(admin.ModelAdmin):
     pass
 
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(OrderBaseCake)
-class OrderBaseCakeAdmin(admin.ModelAdmin):
     pass
 
 

@@ -53,32 +53,10 @@ class Client(models.Model):
         return self.username
 
 
-class BaseCake(models.Model):
-    """Модель торта из стандартного меню."""
-    title = models.CharField('Название', max_length=100)
-    # TODO: переместить inscription в order как base_cake_inscription
-    inscription = models.CharField(
-        'Надпись на торте', max_length=200, blank=True, null=True)
-    price = models.FloatField('Цена')
-
-    class Meta:
-        ordering = ['title']
-        verbose_name = 'Торт из меню'
-        verbose_name_plural = 'Торты из меню'
-
-    class Meta:
-        ordering = ['title']
-        verbose_name = 'Торт из меню'
-        verbose_name_plural = 'Торты из меню'
-
-    def __str__(self):
-        return self.title
-
-
-class CustomCakeQuerySet(models.QuerySet):
-    """Пользовательский класс QuerySet для модели CustomCake."""
+class CakeQuerySet(models.QuerySet):
+    """Пользовательский класс QuerySet для модели Cake."""
     def get_price(self):
-        """Вычислить и записать стоимость пользовательского торта."""
+        """Вычислить и записать стоимость торта."""
         cake = self.first()
         price = (
             EXTRA_PRICES['levels'][str(cake.levels_number)] + 
@@ -86,13 +64,11 @@ class CustomCakeQuerySet(models.QuerySet):
             EXTRA_PRICES['toppings'][cake.topping] +
             EXTRA_PRICES['berries'][cake.berries] +
             EXTRA_PRICES['decor'][cake.decor]
-        )
-        if cake.inscription:
-            price += EXTRA_PRICES['inscription']
+        )  
         self.update(price=price)
 
 
-class CustomCake(models.Model):
+class Cake(models.Model):
     """Модель торта, собранного самостоятельно."""
     LEVEL_CHOICES = [(1, '1 уровень'), (2, '2 уровня'), (3, '3 уровня'),]
     SHAPE_CHOICES = [
@@ -125,7 +101,12 @@ class CustomCake(models.Model):
         ('marshmallow', 'маршмеллоу'),
         ('marzipan', 'марципан'),
     ]
-
+    
+    title = models.CharField(
+        'Название',
+        max_length=100,
+        default='Пользовательский торт',
+    )
     levels_number = models.SmallIntegerField(
         'Количество уровней',
         choices=LEVEL_CHOICES,
@@ -154,35 +135,16 @@ class CustomCake(models.Model):
         blank=True,
         null=True,
     )
-    inscription = models.CharField(
-        'Надпись',
-        max_length=200,
-        blank=True,
-        null=True,
-    )
-    order = models.ForeignKey(
-        'Order',
-        on_delete=models.CASCADE,
-        related_name='custom_cakes',
-        verbose_name='Заказ',
-        blank=True,
-        null=True,
-    )
-    client = models.ForeignKey(
-        Client,
-        on_delete=models.CASCADE,
-        related_name='custom_cakes',
-        verbose_name='Клиент'
-    )
     price = models.FloatField('Цена', blank=True, null=True)
-    objects = CustomCakeQuerySet.as_manager()
+    is_base = models.BooleanField('Стандартный торт', default=False)
+    objects = CakeQuerySet.as_manager()
 
     class Meta:
-        verbose_name = 'Кастомный торт'
-        verbose_name_plural = 'Кастомные торты'
+        verbose_name = 'Торт'
+        verbose_name_plural = 'Торты'
 
     def __str__(self):
-        return f'Кастомный торт клиента {self.client}'
+        return f'{self.title}'
 
 
 class OrderQuerySet(models.QuerySet):
@@ -190,18 +152,17 @@ class OrderQuerySet(models.QuerySet):
     def get_total_price(self):
         """Вычислить и записать полную стоимость заказа."""
         order = self.first()
-        total_price = 0
-        if order.base_cakes:
-            for cake in order.base_cakes.all():
-                if cake.inscription:
-                    total_price += 500
-                total_price += cake.price
-        if order.custom_cakes:
-            for cake in order.custom_cakes.all():
-                total_price += cake.price
+        print(order)
+        total_price = order.cake.price
+        if order.inscription:
+            total_price += EXTRA_PRICES['inscription']
         if order.fast_delivery:
             total_price *= EXTRA_PRICES['express_coefficient']
+        print(total_price)
         self.update(total_price=total_price)
+        order.total_price = total_price
+        order.save()
+        print(order.total_price)
 
 
 class Order(models.Model):
@@ -215,15 +176,17 @@ class Order(models.Model):
     comment = models.TextField('Комментарий', blank=True, null=True,)
     date = models.DateField('Дата доставки')
     time = models.CharField('Время доставки', max_length=50)
-    base_cakes = models.ManyToManyField(
-        BaseCake,
-        through='OrderBaseCake',
-        verbose_name='Торты из меню',
-        blank=True,
+    cake = models.ForeignKey(
+        Cake,
+        verbose_name='Торт',
         related_name='orders',
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
     )
+    inscription = models.CharField('Надпись', max_length=200, blank=True, null=True)
     total_price = models.FloatField('Конечная цена', blank=True, null=True)
-    fast_delivery = models.BooleanField(default=False)
+    fast_delivery = models.BooleanField('Быстрая доставка', default=False)
     objects = OrderQuerySet.as_manager()
 
     class Meta:
@@ -232,23 +195,6 @@ class Order(models.Model):
 
     def __str__(self):
         return f'Заказ клиента {self.client}'
-
-
-class OrderBaseCake(models.Model):
-    """Модель тортов из меню в заказе."""
-    order = models.ForeignKey(
-        Order,
-        on_delete=models.CASCADE,
-        verbose_name='Заказ')
-    base_cake = models.ForeignKey(
-        BaseCake,
-        on_delete=models.CASCADE,
-        verbose_name='Торт')
-    amount = models.IntegerField('Количество тортов в заказе', default=1)
-
-    class Meta:
-        verbose_name = 'Торт из меню в заказе'
-        verbose_name_plural = 'Торты из меню в заказе'
 
 
 class Advertising(models.Model):

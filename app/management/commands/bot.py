@@ -9,7 +9,7 @@ from telebot.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardBut
     InlineKeyboardButton
 import datetime
 
-from app.models import BaseCake, Client, CustomCake, Order
+from app.models import Cake, Client, Order
 
 env = Env()
 env.read_env()
@@ -53,34 +53,33 @@ def create_order(message):
         
     # Creating custom cake in db
     if data.get('type') == 'custom':
-        new_custom_cake = CustomCake.objects.create(
+        new_custom_cake = Cake.objects.create(
             levels_number=data.get('level'),
             shape=data.get('form'),
             topping=data.get('topping'),
             berries=data.get('berries'),
             decor=data.get('decor'),
-            inscription=data.get('inscription'),
-            client=new_client,
         )
         new_custom_cake.save()
-        CustomCake.objects.filter(id=new_custom_cake.id).get_price()
+        Cake.objects.filter(id=new_custom_cake.id).get_price()
     
     # Creating order in db
-    new_order, created = Order.objects.create(
+    new_order = Order.objects.create(
             client=new_client,
             comment=data.get('comment'),
             date=data.get('date'),
             time=data.get('time'),
+            inscription=data.get('inscription'),
     )
-    if created:
-        print(f'Создан новый заказ пользователя {new_client.username}')
-    if data.get('type') == 'base':
-        order_base_cake = BaseCake.objects.get(id=data.get('base_cake_id'))
-        new_order.base_cakes.add(order_base_cake)
-    if data.get('type') == 'custom':
-        new_order.custom_cakes.add(new_custom_cake)
     if data.get('fast_delivery'):
         new_order.fast_delivery = True
+        new_order.save()
+    if data.get('type') == 'base':
+        order_base_cake = Cake.objects.get(id=data.get('base_cake_id'))
+        new_order.cake = order_base_cake
+        new_order.save()
+    else:
+        new_order.cake = new_custom_cake
         new_order.save()
     Order.objects.filter(id=new_order.id).get_total_price()
 
@@ -88,20 +87,20 @@ def create_order(message):
     msg += "Состав заказа: "
     if data.get("type") == "base":
         msg += f"Торт {order_base_cake.title}"
-        if order_base_cake.inscription:
-            msg += f"с надписью '{order_base_cake.inscription}' \n"
+        if new_order.inscription:
+            msg += f"с надписью '{new_order.inscription}' \n"
         # TODO Добавить вывод цены
-        # msg += f"Цена в рублях: {order_base_cake.price} \n "
+        msg += f"Цена в рублях: {new_order.total_price} \n "
     elif data.get("type") == "custom":
         msg += (f"Кастомный торт {new_custom_cake.pk}, вы выбрали: \n"
                 f"Уровни: {new_custom_cake.get_levels_number_display()}\n"
                 f"Форма: {new_custom_cake.get_shape_display()}\n"
                 f"Топпинг: {new_custom_cake.get_topping_display()}\n"
                 f"Декор: {new_custom_cake.get_decor_display()}\n")
-        if new_custom_cake.inscription:
-            msg += f"Надпись: {new_custom_cake.inscription} \n"
+        if new_order.inscription:
+            msg += f"Надпись: {new_order.inscription} \n"
         # TODO Добавить вывод цены
-        # msg += f"Цена в рублях: {new_order.total_price} \n "
+        msg += f"Цена в рублях: {new_order.total_price} \n "
     msg += (f"\nДата доставки {new_order.date}, время {new_order.time}\n"
             f"Комментарий курьеру: {new_order.comment} ")
 
@@ -324,7 +323,7 @@ def base_cake(call):
         data["type"] = call.data
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup()
-    base_cakes = BaseCake.objects.all()
+    base_cakes = Cake.objects.filter(is_base=True)
     for cake in base_cakes:
         button_cake = InlineKeyboardButton(
             f"{cake.title} - {cake.price}р.",
@@ -340,6 +339,7 @@ def base_cake(call):
 def approved(call):
     message = call.message
     chat_id = message.chat.id
+    bot.send_document(message.chat.id, open('agreement.pdf', 'rb'))
     bot.edit_message_reply_markup(chat_id, message.message_id)
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
     button_base = InlineKeyboardButton("Выбрать готовый торт", callback_data="base")
@@ -371,7 +371,6 @@ def start(message):
         bot.send_message(message.chat.id,
                      "Для заказа торта необходимо принять согласие на обработку персональных данных, вы согласны? ",
                      reply_markup=inline_keyboard)
-        bot.send_document(message.chat.id, open('agreement.pdf', 'rb'))
         bot.set_state(message.from_user.id, BotStates.approve_pd, message.chat.id)
     else:
         inline_keyboard = InlineKeyboardMarkup(row_width=2)
