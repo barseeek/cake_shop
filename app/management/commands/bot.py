@@ -85,10 +85,27 @@ def create_order(message):
         new_order.fast_delivery = True
     Order.objects.filter(id=new_order.id).get_total_price()
 
-    msg = "Отлично, вот данные по вашему заказу: \n"
-    for key, value in data.items():
-        msg += f"{key}:{value}\n"
-    msg += "Ваш заказ №бла создан"
+    msg = f"Ваш заказ №{new_order.id} создан\n"
+    msg += "Состав заказа: "
+    if data.get("type") == "base":
+        msg += f"Торт {order_base_cake.title}"
+        if order_base_cake.inscription:
+            msg += f"с надписью '{order_base_cake.inscription}' \n"
+        # TODO Добавить вывод цены
+        # msg += f"Цена в рублях: {order_base_cake.price} \n "
+    elif data.get("type") == "custom":
+        msg += (f"Кастомный торт {new_custom_cake.pk}, вы выбрали: \n"
+                f"Уровни: {new_custom_cake.get_levels_number_display()}\n"
+                f"Форма: {new_custom_cake.get_shape_display()}\n"
+                f"Топпинг: {new_custom_cake.get_topping_display()}\n"
+                f"Декор: {new_custom_cake.get_decor_display()}\n")
+        if new_custom_cake.inscription:
+            msg += f"Надпись: {new_custom_cake.inscription} \n"
+        # TODO Добавить вывод цены
+        # msg += f"Цена в рублях: {new_order.total_price} \n "
+    msg += (f"\nДата доставки {new_order.date}, время {new_order.time}\n"
+            f"Комментарий курьеру: {new_order.comment} ")
+
     bot.send_message(message.chat.id, msg)
     bot.send_message(message.chat.id, "Хотите заказать новый торт? Для нового заказа через бота введите /start")
     bot.delete_state(message.from_user.id, message.chat.id)

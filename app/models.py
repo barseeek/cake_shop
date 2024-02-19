@@ -6,7 +6,7 @@ EXTRA_PRICES = {
     'shapes': {'square': 600, 'circle': 400, 'rectangle': 1000, },
     'toppings': {
         'no_topping': 0,
-        'white_souce': 200,
+        'white_sauce': 200,
         'caramel_syrup': 180,
         'maple_syrup': 200,
         'strawberry_syrup': 300,
@@ -22,7 +22,7 @@ EXTRA_PRICES = {
     },
     'decor': {
         'no_decor': 0,
-        'pistachios': 300,
+        'pistachio': 300,
         'meringue': 400,
         'hazelnut': 350,
         'pecan': 300,
@@ -102,7 +102,7 @@ class CustomCake(models.Model):
     ]
     TOPPING_CHOICES = [
         ('no_topping', 'без топпинга'),
-        ('white_souce', 'белый соус'),
+        ('white_sauce', 'белый соус'),
         ('caramel_syrup', 'карамельный сироп'),
         ('maple_syrup', 'кленовый сироп'),
         ('strawberry_syrup', 'клубничный сироп'),
@@ -118,7 +118,7 @@ class CustomCake(models.Model):
     ]
     DECOR_CHOICES = [
         ('no_decor', 'без декора'),
-        ('pistachios', 'фисташки'),
+        ('pistachio', 'фисташки'),
         ('meringue', 'безе'),
         ('hazelnut', 'фундук'),
         ('pecan', 'пекан'),
