@@ -83,6 +83,7 @@ def create_order(message):
         new_order.custom_cakes.add(new_custom_cake)
     if data.get('fast_delivery'):
         new_order.fast_delivery = True
+        new_order.save()
     Order.objects.filter(id=new_order.id).get_total_price()
 
     msg = f"Ваш заказ №{new_order.id} создан\n"
