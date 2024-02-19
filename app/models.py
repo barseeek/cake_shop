@@ -231,7 +231,7 @@ class Order(models.Model):
         verbose_name_plural = 'Заказы'
 
     def __str__(self):
-        return f'Кастомный торт клиента {self.client}'
+        return f'Заказ клиента {self.client}'
 
 
 class OrderBaseCake(models.Model):

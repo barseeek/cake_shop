@@ -66,13 +66,11 @@ def create_order(message):
         CustomCake.objects.filter(id=new_custom_cake.id).get_price()
     
     # Creating order in db
-    new_order, created = Order.objects.update_or_create(
-        client=new_client,
-        defaults={
-            'comment':data.get('comment'),
-            'date': data.get('date'),
-            'time': data.get('time'),
-        }
+    new_order, created = Order.objects.create(
+            client=new_client,
+            comment=data.get('comment'),
+            date=data.get('date'),
+            time=data.get('time'),
     )
     if created:
         print(f'Создан новый заказ пользователя {new_client.username}')
