@@ -147,24 +147,6 @@ class Cake(models.Model):
         return f'{self.title}'
 
 
-class OrderQuerySet(models.QuerySet):
-    """Пользовательский класс QuerySet для модели Order."""
-    def get_total_price(self):
-        """Вычислить и записать полную стоимость заказа."""
-        order = self.first()
-        print(order)
-        total_price = order.cake.price
-        if order.inscription:
-            total_price += EXTRA_PRICES['inscription']
-        if order.fast_delivery:
-            total_price *= EXTRA_PRICES['express_coefficient']
-        print(total_price)
-        self.update(total_price=total_price)
-        order.total_price = total_price
-        order.save()
-        print(order.total_price)
-
-
 class Order(models.Model):
     """Модель заказа."""
     client = models.ForeignKey(
@@ -187,7 +169,6 @@ class Order(models.Model):
     inscription = models.CharField('Надпись', max_length=200, blank=True, null=True)
     total_price = models.FloatField('Конечная цена', blank=True, null=True)
     fast_delivery = models.BooleanField('Быстрая доставка', default=False)
-    objects = OrderQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Заказ'

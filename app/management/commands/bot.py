@@ -9,7 +9,7 @@ from telebot.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardBut
     InlineKeyboardButton
 import datetime
 
-from app.models import Cake, Client, Order
+from app.models import EXTRA_PRICES, Cake, Client, Order
 
 env = Env()
 env.read_env()
@@ -81,15 +81,20 @@ def create_order(message):
     else:
         new_order.cake = new_custom_cake
         new_order.save()
-    Order.objects.filter(id=new_order.id).get_total_price()
-
+    total_price = new_order.cake.price
+    if new_order.inscription:
+        total_price += EXTRA_PRICES['inscription']
+    if new_order.fast_delivery:
+        total_price *= EXTRA_PRICES['express_coefficient']
+    new_order.total_price = total_price
+    new_order.save()
+    
     msg = f"Ваш заказ №{new_order.id} создан\n"
     msg += "Состав заказа: "
     if data.get("type") == "base":
         msg += f"Торт {order_base_cake.title}"
         if new_order.inscription:
             msg += f"с надписью '{new_order.inscription}' \n"
-        # TODO Добавить вывод цены
         msg += f"Цена в рублях: {new_order.total_price} \n "
     elif data.get("type") == "custom":
         msg += (f"Кастомный торт {new_custom_cake.pk}, вы выбрали: \n"
