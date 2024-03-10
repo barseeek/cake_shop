@@ -188,3 +188,5 @@ fabric.properties
 # .idea
 
 *.sqlite3
+
+*.handler-saves

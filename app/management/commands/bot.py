@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from environs import Env
 import telebot
 from telebot import custom_filters, callback_data
 from telebot.handler_backends import State, StatesGroup
@@ -11,11 +10,9 @@ import datetime
 
 from app.models import EXTRA_PRICES, Cake, Client, Order
 
-env = Env()
-env.read_env()
 
 state_storage = StateMemoryStorage()
-bot = telebot.TeleBot(token=env.str("TELEGRAM_BOT_TOKEN"), state_storage=state_storage)
+bot = telebot.TeleBot(token=settings.TELEGRAM_BOT_TOKEN, state_storage=state_storage)
 
 
 class BotStates(StatesGroup):
