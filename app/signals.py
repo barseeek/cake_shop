@@ -22,21 +22,3 @@ def pre_save_advertising(sender, instance, **kwargs):
         response.raise_for_status()
         instance.url = response.json()["short_url"]
         instance.responses = 0
-    # else:
-    #     headers = {
-    #         "Authorization": f"Bearer {env.str('TLY_API_TOKEN')}"
-    #     }
-    #     url = "https://t.ly/api/v1/link"
-    #     params = {"short_url": instance.url}
-    #     response = requests.get(url,
-    #                             headers=headers,
-    #                             params=params)
-    #     response.raise_for_status()
-    #     url = "https://t.ly/api/v1/link/stats"
-    #     params = {"short_url": instance.url}
-    #     response = requests.get(url,
-    #                             headers=headers,
-    #                             params=params)
-    #     response.raise_for_status()
-    #     instance.responses = response.json()["clicks"]
-    #     instance.responses = 15
